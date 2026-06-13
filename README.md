@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Hotel Room Reservation System
 
 A production-quality full-stack Hotel Reservation System built with Spring Boot 3 + React, featuring microservices architecture.
@@ -472,4 +471,4 @@ mvn test
 ```
 =======
 # Hotel_Booking_System
->>>>>>> 6acfbdecbe6ff99d719c693dbbd7738b7faac461
+
