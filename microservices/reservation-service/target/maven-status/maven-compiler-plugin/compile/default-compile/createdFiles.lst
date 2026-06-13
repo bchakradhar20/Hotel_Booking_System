@@ -1,0 +1,16 @@
+com\hotelreservation\reservation\dto\ApiResponse.class
+com\hotelreservation\reservation\dto\RoomDTO.class
+com\hotelreservation\reservation\security\JwtUtil.class
+com\hotelreservation\reservation\config\SwaggerConfig.class
+com\hotelreservation\reservation\controller\ReservationController.class
+com\hotelreservation\reservation\config\SecurityConfig.class
+com\hotelreservation\reservation\service\ReservationService.class
+com\hotelreservation\reservation\exception\ResourceNotFoundException.class
+com\hotelreservation\reservation\exception\APIException.class
+com\hotelreservation\reservation\dto\ReservationDTO.class
+com\hotelreservation\reservation\entity\Reservation.class
+com\hotelreservation\reservation\security\JwtAuthFilter.class
+com\hotelreservation\reservation\client\RoomClient.class
+com\hotelreservation\reservation\exception\GlobalExceptionHandler.class
+com\hotelreservation\reservation\repository\ReservationRepository.class
+com\hotelreservation\reservation\ReservationServiceApplication.class

@@ -1,0 +1,4 @@
+com\hotelreservation\gateway\filter\AuthenticationFilter.class
+com\hotelreservation\gateway\config\CorsConfig.class
+com\hotelreservation\gateway\filter\AuthenticationFilter$Config.class
+com\hotelreservation\gateway\ApiGatewayApplication.class

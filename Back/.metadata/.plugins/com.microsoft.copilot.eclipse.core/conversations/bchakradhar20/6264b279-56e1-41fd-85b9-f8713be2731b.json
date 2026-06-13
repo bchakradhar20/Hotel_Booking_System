@@ -1,0 +1,47 @@
+{
+  "conversationId": "6264b279-56e1-41fd-85b9-f8713be2731b",
+  "title": "User Registration and Login API",
+  "requesterUsername": "bchakradhar20",
+  "responderUsername": "GitHub Copilot",
+  "turns": [
+    {
+      "message": {
+        "text": "give me form data to resister and login user from postman"
+      },
+      "currentDocument": {
+        "uri": "/backend/src/main/java/com/hotelreservation/dto/SignupRequestDTO.java"
+      },
+      "references": [],
+      "ignoredSkills": [],
+      "userLanguage": "en",
+      "source": "panel",
+      "model": "Claude Haiku 4.5",
+      "chatMode": "Ask",
+      "needToolCallConfirmation": true,
+      "turnId": "4c1eead8-e6f3-4ad5-be9a-c862d879ef2c",
+      "role": "user",
+      "timestamp": "2026-06-08T17:19:13.397723100Z"
+    },
+    {
+      "reply": {
+        "text": "Here are the Postman requests for registering and logging in a user:\n\n**Register User (POST)**\n\n```\nURL: http://localhost:8080/api/auth/signup\nMethod: POST\nContent-Type: application/json\n\nBody (raw JSON):\n{\n  \"username\": \"john_doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"securePassword123\",\n  \"phoneNumber\": \"+1234567890\",\n  \"adminSecret\": \"\"\n}\n```\n\n**Login User (POST)**\n\n```\nURL: http://localhost:8080/api/auth/login\nMethod: POST\nContent-Type: application/json\n\nBody (raw JSON):\n{\n  \"username\": \"john_doe\",\n  \"password\": \"securePassword123\"\n}\n```\n\n**Notes:**\n- Replace `localhost:8080` with your actual server address\n- `adminSecret` is optional — leave empty or omit for regular user signup\n- `phoneNumber` is optional — can be omitted if not needed\n- Password must be at least 6 characters\n- Username must be 3-50 characters\n- Email must be in valid format",
+        "annotations": [],
+        "references": [],
+        "hideText": false,
+        "notifications": [],
+        "followups": [],
+        "errorMessages": [],
+        "editAgentRounds": [],
+        "panelMessages": [],
+        "steps": [],
+        "data": {}
+      },
+      "suggestedTitle": "User Registration and Login API",
+      "turnId": "b16968b0-c0f5-4f09-bb72-c1a02642c358",
+      "role": "copilot",
+      "timestamp": "2026-06-08T17:19:34.785870500Z"
+    }
+  ],
+  "creationDate": "2026-06-08T17:19:13.369791500Z",
+  "lastMessageDate": "2026-06-08T17:19:46.506105200Z"
+}
