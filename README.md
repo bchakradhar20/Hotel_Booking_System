@@ -468,4 +468,11 @@ if (pm.request.headers.has("Authorization")) {
 ```bash
 cd microservices
 mvn test
+<<<<<<< HEAD
 ```
+=======
+```
+=======
+# Hotel_Booking_System
+
+>>>>>>> f90fb385747fd8c00fd02096c6d0dd66e033476b
