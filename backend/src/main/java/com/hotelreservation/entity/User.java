@@ -1,0 +1,68 @@
+package com.hotelreservation.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * Entity representing a registered user in the system.
+ * A user can have multiple roles (ManyToMany with Role).
+ * A user can have multiple reservations (OneToMany with Reservation).
+ */
+@Entity
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "username"),
+                @UniqueConstraint(columnNames = "email")
+        })
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+
+    /** Primary key for the user entity */
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long userId;
+
+    /** Unique username for login and identification */
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
+
+    /** Unique email address of the user */
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
+
+    /** BCrypt-encoded password — never stored in plaintext */
+    @Column(nullable = false)
+    private String password;
+
+    /** Optional phone number for contact purposes */
+    @Column(length = 20)
+    private String phoneNumber;
+
+    /**
+     * Roles assigned to the user.
+     * ManyToMany relationship with Role entity.
+     * Join table: user_roles (user_id FK, role_id FK).
+     * FetchType.EAGER is used so roles are loaded with the user,
+     * which is required by Spring Security during authentication.
+     * CascadeType.MERGE is used to persist role associations
+     * without cascading delete operations.
+     * 
+     * Regarding `SELECT * FROM user_roles`:
+
+That table stores the mapping of users to their roles (e.g., ROLE_USER, ROLE_ADMIN).
+ It's a join table with columns like user_id and role_id, linking users to their assigned roles for access control.
+     */
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
+    @JoinTable(
+            name = "user_roles",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">User Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.user.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package com.hotelreservation.user.config;
+
+import com.hotelreservation.user.security.JwtAuthFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+/**
+ * Spring Security configuration for the User Service.
+ *
+ * &lt;p&gt;All user-profile endpoints require a valid JWT. The username of the authenticated
+ * caller is forwarded via the {@code X-Username} header by the API Gateway, so this
+ * service does not need to re-query the JWT claims directly from the token body.
+ *
+ * &lt;p&gt;Role-based access (e.g. ADMIN-only {@code GET /api/users}) is enforced at
+ * the method level via {@code @PreAuthorize} annotations.
+ *
+ * &lt;p&gt;&lt;strong&gt;CSRF note:&lt;/strong&gt; CSRF protection is intentionally disabled.
+ * This microservice is stateless and uses JWT tokens in the {@code Authorization} header.
+ * CSRF attacks are only relevant when the browser automatically sends credentials (e.g. via
+ * session cookies). Since no cookies or sessions are used here, disabling CSRF is both
+ * correct and standard practice for JWT-secured REST APIs.
+ * See: &lt;a href=&quot;https://docs.spring.io/spring-security/reference/features/exploits/csrf.html&quot;&gt;Spring Security CSRF&lt;/a&gt;
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+
+    /**
+     * Constructs the security configuration with the JWT authentication filter.
+     *
+     * @param jwtAuthFilter filter that validates JWT tokens and populates the security context
+     */
+<span class="nc" id="L42">    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {</span>
+<span class="nc" id="L43">        this.jwtAuthFilter = jwtAuthFilter;</span>
+<span class="nc" id="L44">    }</span>
+
+    /**
+     * Defines the HTTP security filter chain for the User Service.
+     *
+     * &lt;p&gt;Configuration:
+     * &lt;ul&gt;
+     *   &lt;li&gt;CSRF disabled — stateless JWT API; see class Javadoc for full rationale.&lt;/li&gt;
+     *   &lt;li&gt;STATELESS session — no server-side sessions are created.&lt;/li&gt;
+     *   &lt;li&gt;Swagger UI is publicly accessible for API documentation.&lt;/li&gt;
+     *   &lt;li&gt;All remaining endpoints require a valid authenticated JWT.&lt;/li&gt;
+     *   &lt;li&gt;{@link JwtAuthFilter} runs before Spring's default authentication filter.&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param http the {@link HttpSecurity} builder
+     * @return the configured {@link org.springframework.security.web.SecurityFilterChain}
+     * @throws Exception if security configuration fails
+     */
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L64">        http</span>
+                // CSRF disabled: stateless JWT API — no session or cookie credentials used
+<span class="nc" id="L66">                .csrf(csrf -&gt; csrf.disable())</span>
+<span class="nc" id="L67">                .sessionManagement(session -&gt;</span>
+<span class="nc" id="L68">                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L69">                .authorizeHttpRequests(auth -&gt; auth</span>
+<span class="nc" id="L70">                        .requestMatchers(&quot;/swagger-ui/**&quot;, &quot;/v3/api-docs/**&quot;).permitAll()</span>
+<span class="nc" id="L71">                        .anyRequest().authenticated());</span>
+
+<span class="nc" id="L73">        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
+<span class="nc" id="L74">        return http.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

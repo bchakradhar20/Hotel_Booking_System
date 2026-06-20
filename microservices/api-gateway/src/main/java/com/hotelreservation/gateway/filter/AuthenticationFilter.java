@@ -14,57 +14,137 @@ import java.security.Key;
 import java.util.List;
 
 /**
- * Gateway filter that validates JWT tokens and forwards user context headers
- * (X-Username, X-User-Id, X-Roles) to downstream microservices.
+ * API Gateway filter that enforces JWT authentication on protected routes
+ * and forwards user context headers to downstream microservices.
+ *
+ * <p>This is the single centralised authentication enforcement point for the
+ * entire system. All protected routes in {@code application.properties} reference
+ * this filter by name ({@code AuthenticationFilter}). Downstream services receive
+ * pre-validated user context headers and do not need to re-query the database.
+ *
+ * <p>Filter responsibilities:
+ * <ol>
+ *   <li>Reject any request missing a valid {@code Authorization: Bearer} header
+ *       with {@code 401 Unauthorized}.</li>
+ *   <li>Parse and validate the JWT signature and expiry using the shared secret.</li>
+ *   <li>Extract custom JWT claims ({@code userId}, {@code roles}) and the subject
+ *       ({@code username}) from the token.</li>
+ *   <li>Mutate the forwarded request to add three context headers for downstream use:
+ *       <ul>
+ *         <li>{@code X-Username} — the authenticated user's username</li>
+ *         <li>{@code X-User-Id} — the authenticated user's database ID</li>
+ *         <li>{@code X-Roles} — comma-separated list of the user's role names</li>
+ *       </ul>
+ *   </li>
+ * </ol>
+ *
+ * <p>This pattern (gateway-level auth + header forwarding) avoids redundant
+ * database calls in each microservice while still allowing method-level
+ * {@code @PreAuthorize} role checks in the downstream controllers.
  */
 @Component
 public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
 
+    /**
+     * Base64-encoded HMAC secret shared across all microservices and the gateway.
+     * All services must use the same secret to validate tokens issued by the Auth Service.
+     */
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
-    public AuthenticationFilter() { super(Config.class); }
+    /**
+     * Constructs the filter and registers it with the gateway filter factory.
+     * The {@link Config} class is passed to the parent to support YAML/properties configuration.
+     */
+    public AuthenticationFilter() {
+        super(Config.class);
+    }
 
+    /**
+     * Builds and returns the reactive {@link GatewayFilter} logic for this factory.
+     *
+     * <p>The returned filter is applied to every route that includes
+     * {@code filters: AuthenticationFilter} in the gateway route configuration.
+     *
+     * <p>Processing flow for each request:
+     * <ol>
+     *   <li>Read the {@code Authorization} header from the incoming request.</li>
+     *   <li>Reject immediately with {@code 401} if the header is missing or not a Bearer token.</li>
+     *   <li>Parse the JWT and validate signature + expiry using the shared HMAC secret.</li>
+     *   <li>Extract {@code sub} (username), {@code userId}, and {@code roles} claims.</li>
+     *   <li>Mutate the request to include {@code X-Username}, {@code X-User-Id}, and
+     *       {@code X-Roles} headers before forwarding to the downstream microservice.</li>
+     *   <li>On any JWT error (expired, malformed, wrong signature), reject with {@code 401}.</li>
+     * </ol>
+     *
+     * @param config the filter configuration (currently unused — no config properties needed)
+     * @return the configured {@link GatewayFilter} instance
+     */
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
             HttpHeaders headers = exchange.getRequest().getHeaders();
             String authHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
 
+            // Step 1: Reject requests with no Bearer token — client must authenticate first
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
 
             try {
+                // Step 2: Parse and validate the JWT — signature check + expiry check
                 Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(getSigningKey()).build()
-                        .parseClaimsJws(authHeader.substring(7)).getBody();
+                        .setSigningKey(getSigningKey())
+                        .build()
+                        .parseClaimsJws(authHeader.substring(7)) // strip "Bearer " prefix
+                        .getBody();
 
-                @SuppressWarnings("unchecked")
+                // Step 3: Extract custom claims embedded by the Auth Service during token generation
+                @SuppressWarnings("unchecked")// roles claim is a List<String> in the JWT, but JJWT returns it as a raw Object
                 List<String> roles = claims.get("roles", List.class);
+                // Join role names as comma-separated string for the X-Roles header
                 String rolesHeader = roles != null ? String.join(",", roles) : "";
+
+                // userId is stored as a Number in the JWT; convert to String for the header
                 Object userIdObj = claims.get("userId");
                 String userId = userIdObj != null ? userIdObj.toString() : "";
 
-                var mutated = exchange.getRequest().mutate()
-                        .header("X-Username", claims.getSubject())
+                // Step 4: Mutate the request to add user context headers for downstream services
+                // Downstream services read X-Username, X-User-Id, X-Roles instead of re-parsing JWT
+                var mutatedRequest = exchange.getRequest().mutate()
+                        .header("X-Username", claims.getSubject()) // JWT subject = username
                         .header("X-User-Id", userId)
                         .header("X-Roles", rolesHeader)
                         .build();
 
-                return chain.filter(exchange.mutate().request(mutated).build());
+                // Step 5: Forward the enriched request to the downstream microservice
+                return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
-            } catch (JwtException e) {
+            } catch (JwtException ex) {
+                // Step 6: Reject expired, malformed, or tampered tokens
                 exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                 return exchange.getResponse().setComplete();
             }
         };
     }
 
+    /**
+     * Derives the HMAC signing key from the Base64-encoded secret configured in
+     * {@code application.properties}. The same key is used by the Auth Service
+     * when generating tokens, ensuring consistent signature verification.
+     *
+     * @return the {@link Key} used to verify JWT token signatures
+     */
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public static class Config {}
+    public static class Config {
+        // No configuration properties needed for this filter
+        private String placeholder;
+        public String getPlaceholder() { return placeholder; }
+        public void setPlaceholder(String placeholder) { this.placeholder = placeholder; }
+    }
 }

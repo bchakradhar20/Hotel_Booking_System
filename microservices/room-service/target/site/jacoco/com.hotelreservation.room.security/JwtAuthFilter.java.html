@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtAuthFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Room Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.room.security</a> &gt; <span class="el_source">JwtAuthFilter.java</span></div><h1>JwtAuthFilter.java</h1><pre class="source lang-java linenums">package com.hotelreservation.room.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * JWT authentication filter executed once per HTTP request.
+ *
+ * &lt;p&gt;Extracts and validates the Bearer token from the Authorization header.
+ * On success, populates the Spring Security context with the authenticated principal
+ * and their granted authorities derived from the X-Roles header forwarded by the API Gateway.
+ *
+ * &lt;p&gt;If authentication fails for any reason, the filter logs the error at WARN level
+ * and continues the filter chain unauthenticated. Downstream security rules then
+ * decide whether to reject the request.
+ */
+@Component
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+<span class="nc" id="L35">    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);</span>
+
+    /** Header name for the Bearer JWT token. */
+    private static final String AUTHORIZATION_HEADER = &quot;Authorization&quot;;
+
+    /** Header name forwarded by the API Gateway containing comma-separated role names. */
+    private static final String ROLES_HEADER = &quot;X-Roles&quot;;
+
+    /** Bearer token prefix to strip before parsing the JWT. */
+    private static final String BEARER_PREFIX = &quot;Bearer &quot;;
+
+    private final JwtUtil jwtUtil;
+
+    /**
+     * Constructs the filter with the required JWT utility.
+     *
+     * @param jwtUtil utility for JWT validation and claim extraction
+     */
+<span class="nc" id="L53">    public JwtAuthFilter(JwtUtil jwtUtil) {</span>
+<span class="nc" id="L54">        this.jwtUtil = jwtUtil;</span>
+<span class="nc" id="L55">    }</span>
+
+    /**
+     * Core filter logic invoked once per request.
+     *
+     * &lt;p&gt;Authentication flow:
+     * &lt;ol&gt;
+     *   &lt;li&gt;Extract the Bearer token from the Authorization header.&lt;/li&gt;
+     *   &lt;li&gt;Validate the token signature and expiry via {@link JwtUtil#validateToken(String)}.&lt;/li&gt;
+     *   &lt;li&gt;Extract the username from the token subject claim.&lt;/li&gt;
+     *   &lt;li&gt;Parse granted authorities from the X-Roles header (comma-separated role names).&lt;/li&gt;
+     *   &lt;li&gt;Store a {@link UsernamePasswordAuthenticationToken} in the {@link SecurityContextHolder}.&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param request     the incoming HTTP servlet request
+     * @param response    the HTTP servlet response
+     * @param filterChain the remaining filter chain to execute after this filter
+     * @throws ServletException if a servlet-level error occurs
+     * @throws IOException      if an I/O error occurs during filtering
+     */
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        try {
+<span class="nc" id="L80">            String authHeader = request.getHeader(AUTHORIZATION_HEADER);</span>
+
+            // Only process requests that carry a Bearer token
+<span class="nc bnc" id="L83" title="All 4 branches missed.">            if (StringUtils.hasText(authHeader) &amp;&amp; authHeader.startsWith(BEARER_PREFIX)) {</span>
+                // Strip the &quot;Bearer &quot; prefix to obtain the raw JWT string
+<span class="nc" id="L85">                String token = authHeader.substring(BEARER_PREFIX.length());</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">                if (jwtUtil.validateToken(token)) {</span>
+<span class="nc" id="L88">                    String username = jwtUtil.getUsernameFromToken(token);</span>
+
+                    // Parse the X-Roles header forwarded by the API Gateway.
+                    // Each role name is a comma-separated entry (e.g. &quot;ROLE_ADMIN,ROLE_USER&quot;).
+<span class="nc" id="L92">                    String rolesHeader = request.getHeader(ROLES_HEADER);</span>
+<span class="nc" id="L93">                    List&lt;SimpleGrantedAuthority&gt; authorities = buildAuthorities(rolesHeader);</span>
+
+                    // Build a fully authenticated token — credentials are null because
+                    // the JWT itself is the proof of identity; no password is needed here.
+<span class="nc" id="L97">                    UsernamePasswordAuthenticationToken authToken =</span>
+                            new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+<span class="nc" id="L100">                    SecurityContextHolder.getContext().setAuthentication(authToken);</span>
+                }
+            }
+<span class="nc" id="L103">        } catch (Exception ex) {</span>
+            // Log the failure at WARN level to preserve stack-trace visibility
+            // without blocking the filter chain — unauthenticated requests are
+            // handled by the downstream security rules.
+<span class="nc" id="L107">            log.warn(&quot;JWT authentication failed for request [{}]: {}&quot;,</span>
+<span class="nc" id="L108">                    request.getRequestURI(), ex.getMessage());</span>
+<span class="nc" id="L109">        }</span>
+
+<span class="nc" id="L111">        filterChain.doFilter(request, response);</span>
+<span class="nc" id="L112">    }</span>
+
+    /**
+     * Converts a comma-separated roles string into a list of {@link SimpleGrantedAuthority}.
+     *
+     * @param rolesHeader the raw X-Roles header value, may be {@code null} or empty
+     * @return list of granted authorities; empty list if the header is absent
+     */
+    private List&lt;SimpleGrantedAuthority&gt; buildAuthorities(String rolesHeader) {
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (!StringUtils.hasText(rolesHeader)) {</span>
+<span class="nc" id="L122">            return Collections.emptyList();</span>
+        }
+        // Split on comma, trim whitespace, and wrap each role in a GrantedAuthority
+<span class="nc" id="L125">        return Arrays.stream(rolesHeader.split(&quot;,&quot;))</span>
+<span class="nc" id="L126">                .map(String::trim)</span>
+<span class="nc" id="L127">                .filter(StringUtils::hasText)</span>
+<span class="nc" id="L128">                .map(SimpleGrantedAuthority::new)</span>
+<span class="nc" id="L129">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

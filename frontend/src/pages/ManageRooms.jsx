@@ -20,6 +20,9 @@ export default function ManageRooms() {
     e.preventDefault()
     setMsg('')
     setError('')
+    if (!form.roomNumber.trim()) { setError('Room number is required'); return }
+    if (!form.pricePerNight || parseFloat(form.pricePerNight) <= 0) { setError('Price must be greater than 0'); return }
+    if (!form.capacity || parseInt(form.capacity) < 1) { setError('Capacity must be at least 1'); return }
     try {
       const payload = { ...form, pricePerNight: parseFloat(form.pricePerNight), capacity: parseInt(form.capacity) }
       if (editId) {

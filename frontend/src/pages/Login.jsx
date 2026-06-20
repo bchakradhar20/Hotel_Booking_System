@@ -8,11 +8,19 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const validate = () => {
+    if (!form.username || form.username.trim().length < 3) return 'Username must be at least 3 characters'
+    if (!form.password || form.password.length < 6) return 'Password must be at least 6 characters'
+    return ''
+  }
+
   const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async e => {
     e.preventDefault()
     setError('')
+    const validationErr = validate()
+    if (validationErr) { setError(validationErr); return }
     setLoading(true)
     try {
       const { data } = await API.post('/auth/signin', form)

@@ -37,6 +37,6 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorResponse build(HttpStatus status, String error, String message, String path, Map<String, String> validationErrors) {
-        return new ErrorResponse(status.value(), error, message, path, LocalDateTime.now(), validationErrors);
+        return new ErrorResponse(status.value(), error, message, path, LocalDateTime.now(java.time.ZoneId.systemDefault()), validationErrors);
     }
 }

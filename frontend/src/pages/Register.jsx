@@ -15,6 +15,14 @@ export default function Register() {
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const validate = () => {
+    if (!form.username || form.username.trim().length < 3) return 'Username must be at least 3 characters'
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Enter a valid email address'
+    if (!form.password || form.password.length < 6) return 'Password must be at least 6 characters'
+    if (tab === 'admin' && !adminSecret) return 'Admin secret key is required'
+    return ''
+  }
+
   const handleTabSwitch = t => {
     setTab(t)
     setForm(EMPTY)
@@ -29,6 +37,8 @@ export default function Register() {
     e.preventDefault()
     setError('')
     setSuccess('')
+    const validationErr = validate()
+    if (validationErr) { setError(validationErr); return }
     setLoading(true)
     try {
       if (tab === 'user') {

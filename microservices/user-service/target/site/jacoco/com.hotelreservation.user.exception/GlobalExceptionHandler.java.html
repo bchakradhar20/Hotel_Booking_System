@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">User Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.user.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.hotelreservation.user.exception;
+
+import com.hotelreservation.user.dto.ApiResponse;
+import org.springframework.http.*;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+<span class="nc" id="L13">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ApiResponse handleNotFound(ResourceNotFoundException ex) {
+<span class="nc" id="L18">        return new ApiResponse(ex.getMessage(), false);</span>
+    }
+
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity&lt;ApiResponse&gt; handleApiException(APIException ex) {
+<span class="nc" id="L23">        return ResponseEntity.status(ex.getStatus()).body(new ApiResponse(ex.getMessage(), false));</span>
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse handleMissingHeader(MissingRequestHeaderException ex) {
+<span class="nc" id="L29">        return new ApiResponse(&quot;Access must be through API Gateway&quot;, false);</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiResponse handleValidation(MethodArgumentNotValidException ex) {
+<span class="nc" id="L35">        String msg = ex.getBindingResult().getFieldErrors().stream()</span>
+<span class="nc" id="L36">                .map(FieldError::getDefaultMessage).collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc" id="L37">        return new ApiResponse(msg, false);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ApiResponse handleGeneric(Exception ex) {
+<span class="nc" id="L43">        return new ApiResponse(&quot;An unexpected error occurred: &quot; + ex.getMessage(), false);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

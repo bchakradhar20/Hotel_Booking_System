@@ -18,12 +18,15 @@ public class CorsConfig {
     @Bean
     public CorsWebFilter corsWebFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        // Create a new CORS configuration
         config.setAllowedOrigins(List.of("http://localhost:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        // Allow all headers like Authorization, Content-Type, etc.
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // Create a new URL-based CORS configuration source it will apply the CORS configuration to all endpoints (/**)   
         source.registerCorsConfiguration("/**", config);
         return new CorsWebFilter(source);
     }

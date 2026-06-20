@@ -24,13 +24,13 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)// if request header is missing
     public ApiResponse handleMissingHeader(MissingRequestHeaderException ex) {
         return new ApiResponse("Access must be through API Gateway", false);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)// validation rules failed according to @Valid annotation
     public ApiResponse handleValidation(MethodArgumentNotValidException ex) {
         String msg = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage).collect(Collectors.joining(", "));
@@ -38,7 +38,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)// built-in exception handler for any unhandled exceptions
     public ApiResponse handleGeneric(Exception ex) {
         return new ApiResponse("An unexpected error occurred: " + ex.getMessage(), false);
     }

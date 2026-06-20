@@ -15,7 +15,7 @@ public class JwtUtil {
 
     public String getUsernameFromToken(String token) {
         return Jwts.parserBuilder().setSigningKey(getSigningKey()).build()
-                .parseClaimsJws(token).getBody().getSubject();
+                .parseClaimsJws(token).getBody().getSubject();//Retrieving user id, role 
     }
 
     public boolean validateToken(String token) {

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserDetailsImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Auth Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.auth.security</a> &gt; <span class="el_source">UserDetailsImpl.java</span></div><h1>UserDetailsImpl.java</h1><pre class="source lang-java linenums">package com.hotelreservation.auth.security;
+
+import com.hotelreservation.auth.entity.User;
+import lombok.Getter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * Spring Security principal object wrapping an authenticated {@link User} entity.
+ *
+ * &lt;p&gt;This class bridges the application's {@link User} domain model with Spring Security's
+ * {@link UserDetails} contract. It is constructed by
+ * {@link UserDetailsServiceImpl#loadUserByUsername(String)} during the authentication process
+ * and then used by {@link JwtUtil#generateToken(org.springframework.security.core.Authentication)}
+ * to embed user identity into the JWT token.
+ *
+ * &lt;p&gt;Fields carried by this principal:
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code userId} — the user's database primary key, embedded in the JWT as a custom claim&lt;/li&gt;
+ *   &lt;li&gt;{@code username} — the login name, used as the JWT subject ({@code sub} claim)&lt;/li&gt;
+ *   &lt;li&gt;{@code email} — included in the login response for UI display&lt;/li&gt;
+ *   &lt;li&gt;{@code password} — the BCrypt hash used by Spring Security to verify the submitted password&lt;/li&gt;
+ *   &lt;li&gt;{@code authorities} — the user's roles as {@link SimpleGrantedAuthority} objects&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Getter
+public class UserDetailsImpl implements UserDetails {
+
+<span class="fc" id="L34">    private final Long userId;</span>
+<span class="fc" id="L35">    private final String username;</span>
+<span class="fc" id="L36">    private final String email;</span>
+<span class="nc" id="L37">    private final String password;</span>
+<span class="fc" id="L38">    private final Collection&lt;? extends GrantedAuthority&gt; authorities;</span>
+
+    /**
+     * Constructs a fully populated principal with all required identity fields.
+     *
+     * @param userId      the user's database ID
+     * @param username    the user's login name
+     * @param email       the user's email address
+     * @param password    the user's BCrypt-encoded password hash
+     * @param authorities the user's granted authorities (roles)
+     */
+    public UserDetailsImpl(Long userId, String username, String email, String password,
+<span class="fc" id="L50">                           Collection&lt;? extends GrantedAuthority&gt; authorities) {</span>
+<span class="fc" id="L51">        this.userId = userId;</span>
+<span class="fc" id="L52">        this.username = username;</span>
+<span class="fc" id="L53">        this.email = email;</span>
+<span class="fc" id="L54">        this.password = password;</span>
+<span class="fc" id="L55">        this.authorities = authorities;</span>
+<span class="fc" id="L56">    }</span>
+
+    /**
+     * Factory method that builds a {@link UserDetailsImpl} from a {@link User} entity.
+     *
+     * &lt;p&gt;Called by {@link UserDetailsServiceImpl} after loading the user from the database.
+     * Each role in the user's role set is converted to a {@link SimpleGrantedAuthority}
+     * using the role's name (e.g. {@code &quot;ROLE_ADMIN&quot;}).
+     *
+     * @param user the user entity loaded from the database
+     * @return a fully constructed {@link UserDetailsImpl} ready for use by Spring Security
+     */
+    public static UserDetailsImpl build(User user) {
+        // Convert each Role entity into a Spring Security GrantedAuthority
+<span class="nc" id="L70">        List&lt;GrantedAuthority&gt; authorities = user.getRoles().stream()</span>
+<span class="nc" id="L71">                .map(role -&gt; new SimpleGrantedAuthority(role.getRoleName()))</span>
+<span class="nc" id="L72">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L74">        return new UserDetailsImpl(</span>
+<span class="nc" id="L75">                user.getUserId(),</span>
+<span class="nc" id="L76">                user.getUsername(),</span>
+<span class="nc" id="L77">                user.getEmail(),</span>
+<span class="nc" id="L78">                user.getPassword(),</span>
+                authorities
+        );
+    }
+
+    // ── Spring Security account status checks ──────────────────────────────────
+    // All return true because this application does not implement account locking,
+    // expiry, or disabling features. Override these to add account management logic.
+
+    /** @return {@code true} — account expiry is not implemented */
+<span class="nc" id="L88">    @Override public boolean isAccountNonExpired()     { return true; }</span>
+
+    /** @return {@code true} — account locking is not implemented */
+<span class="nc" id="L91">    @Override public boolean isAccountNonLocked()      { return true; }</span>
+
+    /** @return {@code true} — credential expiry is not implemented */
+<span class="nc" id="L94">    @Override public boolean isCredentialsNonExpired() { return true; }</span>
+
+    /** @return {@code true} — account disabling is not implemented */
+<span class="nc" id="L97">    @Override public boolean isEnabled()               { return true; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

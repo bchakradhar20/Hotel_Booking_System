@@ -1,0 +1,18 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Room Service,com.hotelreservation.room.exception,GlobalExceptionHandler,44,0,0,0,7,0,5,0,5,0
+Room Service,com.hotelreservation.room.exception,APIException,0,10,0,0,0,2,0,2,0,2
+Room Service,com.hotelreservation.room.exception,ResourceNotFoundException,0,19,0,0,0,2,0,1,0,1
+Room Service,com.hotelreservation.room,RoomServiceApplication,8,0,0,0,3,0,2,0,2,0
+Room Service,com.hotelreservation.room.config,DataInitializer,209,0,4,0,20,0,4,0,2,0
+Room Service,com.hotelreservation.room.config,ModelMapperConfig,14,0,0,0,4,0,2,0,2,0
+Room Service,com.hotelreservation.room.config,SwaggerConfig,28,0,0,0,7,0,2,0,2,0
+Room Service,com.hotelreservation.room.config,SecurityConfig,62,0,0,0,13,0,5,0,5,0
+Room Service,com.hotelreservation.room.security,JwtUtil,34,0,0,0,7,0,4,0,4,0
+Room Service,com.hotelreservation.room.security,JwtAuthFilter,85,0,8,0,26,0,8,0,4,0
+Room Service,com.hotelreservation.room.mapper,RoomMapper,20,0,0,0,3,0,3,0,3,0
+Room Service,com.hotelreservation.room.entity,Room.RoomType,0,27,0,0,0,1,0,1,0,1
+Room Service,com.hotelreservation.room.entity,Room,25,41,0,0,6,1,8,6,8,6
+Room Service,com.hotelreservation.room.controller,RoomController,43,0,0,0,9,0,6,0,6,0
+Room Service,com.hotelreservation.room.service,RoomService,0,152,0,4,0,31,0,11,0,9
+Room Service,com.hotelreservation.room.dto,ApiResponse,26,0,0,0,3,0,6,0,6,0
+Room Service,com.hotelreservation.room.dto,RoomDTO,27,39,0,0,0,7,7,7,7,7

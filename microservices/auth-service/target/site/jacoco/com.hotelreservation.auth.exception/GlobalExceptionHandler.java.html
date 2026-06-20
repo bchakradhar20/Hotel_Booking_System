@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Auth Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.auth.exception</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.hotelreservation.auth.exception;
+
+import com.hotelreservation.auth.dto.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.*;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@RestControllerAdvice
+<span class="nc" id="L15">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity&lt;ErrorResponse&gt; handleApiException(APIException ex, HttpServletRequest req) {
+<span class="nc" id="L19">        return ResponseEntity.status(ex.getStatus())</span>
+<span class="nc" id="L20">                .body(build(ex.getStatus(), ex.getStatus().getReasonPhrase(), ex.getMessage(), req.getRequestURI(), null));</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
+<span class="nc" id="L26">        Map&lt;String, String&gt; errors = ex.getBindingResult().getFieldErrors().stream()</span>
+<span class="nc" id="L27">                .collect(Collectors.toMap(FieldError::getField,</span>
+<span class="nc bnc" id="L28" title="All 2 branches missed.">                        fe -&gt; fe.getDefaultMessage() != null ? fe.getDefaultMessage() : &quot;Invalid value&quot;,</span>
+<span class="nc" id="L29">                        (a, b) -&gt; a));</span>
+<span class="nc" id="L30">        return build(HttpStatus.BAD_REQUEST, &quot;Validation Failed&quot;, &quot;Input validation failed&quot;, req.getRequestURI(), errors);</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleGeneric(Exception ex, HttpServletRequest req) {
+<span class="nc" id="L36">        return build(HttpStatus.INTERNAL_SERVER_ERROR, &quot;Internal Server Error&quot;, &quot;An unexpected error occurred&quot;, req.getRequestURI(), null);</span>
+    }
+
+    private ErrorResponse build(HttpStatus status, String error, String message, String path, Map&lt;String, String&gt; validationErrors) {
+<span class="nc" id="L40">        return new ErrorResponse(status.value(), error, message, path, LocalDateTime.now(java.time.ZoneId.systemDefault()), validationErrors);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

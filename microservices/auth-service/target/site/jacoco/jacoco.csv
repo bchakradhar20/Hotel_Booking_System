@@ -1,0 +1,19 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Auth Service,com.hotelreservation.auth.config,SecurityConfig,59,0,0,0,16,0,8,0,8,0
+Auth Service,com.hotelreservation.auth.config,SwaggerConfig,28,0,0,0,7,0,2,0,2,0
+Auth Service,com.hotelreservation.auth.config,DataInitializer,37,0,4,0,8,0,4,0,2,0
+Auth Service,com.hotelreservation.auth.entity,Role,17,9,0,0,2,1,5,1,5,1
+Auth Service,com.hotelreservation.auth.entity,User,48,28,0,0,6,2,8,6,8,6
+Auth Service,com.hotelreservation.auth.security,UserDetailsServiceImpl,24,0,0,0,6,0,3,0,3,0
+Auth Service,com.hotelreservation.auth.security,UserDetailsImpl,39,30,0,0,13,11,7,5,7,5
+Auth Service,com.hotelreservation.auth.security,JwtUtil,74,0,0,0,28,0,5,0,5,0
+Auth Service,com.hotelreservation.auth.exception,APIException,0,10,0,0,0,4,0,2,0,2
+Auth Service,com.hotelreservation.auth.exception,GlobalExceptionHandler,71,0,2,0,10,0,8,0,7,0
+Auth Service,com.hotelreservation.auth.dto,ApiResponse,11,15,0,0,0,3,3,3,3,3
+Auth Service,com.hotelreservation.auth.dto,UserInfoResponse,23,33,0,0,0,6,6,6,6,6
+Auth Service,com.hotelreservation.auth.dto,ErrorResponse,66,0,0,0,7,0,14,0,14,0
+Auth Service,com.hotelreservation.auth.dto,LoginRequestDTO,11,15,0,0,0,3,3,3,3,3
+Auth Service,com.hotelreservation.auth.dto,SignupRequestDTO,19,37,0,0,0,6,5,7,5,7
+Auth Service,com.hotelreservation.auth.service,AuthService,0,234,0,8,0,45,0,13,0,9
+Auth Service,com.hotelreservation.auth,AuthServiceApplication,8,0,0,0,3,0,2,0,2,0
+Auth Service,com.hotelreservation.auth.controller,AuthController,28,0,0,0,6,0,4,0,4,0

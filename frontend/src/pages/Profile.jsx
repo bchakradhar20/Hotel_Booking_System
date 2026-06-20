@@ -21,6 +21,10 @@ export default function Profile() {
     e.preventDefault()
     setMsg('')
     setError('')
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('Enter a valid email address')
+      return
+    }
     setLoading(true)
     try {
       const { data } = await API.put('/users/profile', form)

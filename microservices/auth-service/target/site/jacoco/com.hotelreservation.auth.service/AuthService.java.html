@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Auth Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.auth.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.hotelreservation.auth.service;
+
+import com.hotelreservation.auth.dto.ApiResponse;
+import com.hotelreservation.auth.dto.LoginRequestDTO;
+import com.hotelreservation.auth.dto.SignupRequestDTO;
+import com.hotelreservation.auth.dto.UserInfoResponse;
+import com.hotelreservation.auth.entity.Role;
+import com.hotelreservation.auth.entity.User;
+import com.hotelreservation.auth.exception.APIException;
+import com.hotelreservation.auth.repository.RoleRepository;
+import com.hotelreservation.auth.repository.UserRepository;
+import com.hotelreservation.auth.security.JwtUtil;
+import com.hotelreservation.auth.security.UserDetailsImpl;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Service responsible for all user authentication and registration business logic.
+ *
+ * &lt;p&gt;Responsibilities:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Registering new standard users with {@code ROLE_USER}.&lt;/li&gt;
+ *   &lt;li&gt;Registering admin users (secret-gated) with {@code ROLE_USER} + {@code ROLE_ADMIN}.&lt;/li&gt;
+ *   &lt;li&gt;Authenticating users via Spring Security and issuing signed JWT tokens.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;Follows the &lt;em&gt;Single Responsibility Principle&lt;/em&gt;: this class handles only
+ * authentication concerns. Password hashing, JWT generation, and role management
+ * are delegated to dedicated collaborators injected via constructor.
+ */
+@Service
+public class AuthService {
+
+    private static final String ROLE_USER = &quot;ROLE_USER&quot;;
+    private static final String ROLE_ADMIN = &quot;ROLE_ADMIN&quot;;
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+
+    /**
+     * Admin registration secret loaded from {@code application.yml}.
+     * Anyone who submits this secret in the signup request receives {@code ROLE_ADMIN}.
+     * Must be changed to a strong, unique value before deploying to production.
+     */
+    @Value(&quot;${app.admin.secret}&quot;)
+    private String adminSecret;
+
+    /**
+     * Constructs the service with all required authentication dependencies.
+     *
+     * @param userRepository        repository for persisting and querying users
+     * @param roleRepository        repository for role lookups and creation
+     * @param passwordEncoder       BCrypt encoder for hashing raw passwords
+     * @param authenticationManager Spring Security manager for credential verification
+     * @param jwtUtil               utility for generating signed JWT tokens
+     */
+    public AuthService(UserRepository userRepository,
+                       RoleRepository roleRepository,
+                       PasswordEncoder passwordEncoder,
+                       AuthenticationManager authenticationManager,
+<span class="fc" id="L76">                       JwtUtil jwtUtil) {</span>
+<span class="fc" id="L77">        this.userRepository = userRepository;</span>
+<span class="fc" id="L78">        this.roleRepository = roleRepository;</span>
+<span class="fc" id="L79">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L80">        this.authenticationManager = authenticationManager;</span>
+<span class="fc" id="L81">        this.jwtUtil = jwtUtil;</span>
+<span class="fc" id="L82">    }</span>
+
+    /**
+     * Registers a new user account with the default {@code ROLE_USER} role.
+     *
+     * &lt;p&gt;Validates that neither the username nor email is already in use before
+     * persisting the new user. The raw password is BCrypt-encoded before storage.
+     *
+     * @param request the signup form data submitted by the client
+     * @return {@link ApiResponse} confirming successful registration
+     * @throws APIException with {@code 400 BAD_REQUEST} if username or email is already taken
+     */
+    @Transactional
+    public ApiResponse registerUser(SignupRequestDTO request) {
+        // Guard: ensure both username and email are unique across all existing accounts
+<span class="fc" id="L97">        validateUniqueCredentials(request.getUsername(), request.getEmail());</span>
+
+<span class="fc" id="L99">        User user = buildUserEntity(request);</span>
+
+        // Fetch or lazily create the ROLE_USER role — safe for concurrent startups
+<span class="fc" id="L102">        Role userRole = roleRepository.findByRoleName(ROLE_USER)</span>
+<span class="fc" id="L103">                .orElseGet(() -&gt; roleRepository.save(new Role(null, ROLE_USER)));</span>
+
+<span class="fc" id="L105">        user.setRoles(new HashSet&lt;&gt;(Set.of(userRole)));</span>
+<span class="fc" id="L106">        userRepository.save(user);</span>
+
+<span class="fc" id="L108">        return new ApiResponse(&quot;User registered successfully&quot;, true);</span>
+    }
+
+    /**
+     * Registers a new admin user from the public admin registration endpoint.
+     *
+     * &lt;p&gt;Access is gated by the {@code adminSecret} field in the request body.
+     * Only callers who know the configured secret can self-register as admins.
+     * The created account receives both {@code ROLE_USER} and {@code ROLE_ADMIN}.
+     *
+     * @param request registration details including the admin secret key
+     * @return {@link ApiResponse} confirming successful admin registration
+     * @throws APIException with {@code 403 FORBIDDEN} if the admin secret is invalid
+     * @throws APIException with {@code 400 BAD_REQUEST} if username or email is already taken
+     */
+    @Transactional
+    public ApiResponse registerAdmin(SignupRequestDTO request) {
+        // Step 1: Validate the submitted admin secret before any user data is processed.
+        // Reject immediately on null, blank, or wrong secret to prevent information leakage.
+<span class="fc bfc" id="L127" title="All 4 branches covered.">        if (request.getAdminSecret() == null || !request.getAdminSecret().equals(adminSecret)) {</span>
+<span class="fc" id="L128">            throw new APIException(HttpStatus.FORBIDDEN, &quot;Invalid admin secret key&quot;);</span>
+        }
+
+        // Step 2: Standard uniqueness checks — same as regular user registration
+<span class="fc" id="L132">        validateUniqueCredentials(request.getUsername(), request.getEmail());</span>
+
+<span class="fc" id="L134">        User user = buildUserEntity(request);</span>
+
+        // Step 3: Assign both ROLE_USER and ROLE_ADMIN so the admin can also use user features
+<span class="fc" id="L137">        Role userRole = roleRepository.findByRoleName(ROLE_USER)</span>
+<span class="fc" id="L138">                .orElseGet(() -&gt; roleRepository.save(new Role(null, ROLE_USER)));</span>
+<span class="fc" id="L139">        Role adminRole = roleRepository.findByRoleName(ROLE_ADMIN)</span>
+<span class="fc" id="L140">                .orElseGet(() -&gt; roleRepository.save(new Role(null, ROLE_ADMIN)));</span>
+
+<span class="fc" id="L142">        user.setRoles(new HashSet&lt;&gt;(Set.of(userRole, adminRole)));</span>
+<span class="fc" id="L143">        userRepository.save(user);</span>
+
+<span class="fc" id="L145">        return new ApiResponse(&quot;Admin registered successfully&quot;, true);</span>
+    }
+
+    /**
+     * Authenticates a user using Spring Security and returns a signed JWT token.
+     *
+     * &lt;p&gt;Authentication flow:
+     * &lt;ol&gt;
+     *   &lt;li&gt;{@link AuthenticationManager} verifies the username and BCrypt password.&lt;/li&gt;
+     *   &lt;li&gt;On success, the {@link UserDetailsImpl} principal is extracted from the result.&lt;/li&gt;
+     *   &lt;li&gt;A signed JWT (with userId and roles claims) is generated via {@link JwtUtil}.&lt;/li&gt;
+     *   &lt;li&gt;The token and user metadata are returned in a {@link UserInfoResponse}.&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param request the login credentials (username and raw password)
+     * @return {@link UserInfoResponse} containing the JWT token and user identity info
+     * @throws org.springframework.security.core.AuthenticationException if credentials are invalid
+     */
+    public UserInfoResponse authenticateUser(LoginRequestDTO request) {
+        // Delegate credential verification to Spring Security's AuthenticationManager.
+        // This internally calls UserDetailsServiceImpl.loadUserByUsername and verifies the hash.
+<span class="fc" id="L166">        Authentication authentication = authenticationManager.authenticate(</span>
+<span class="fc" id="L167">                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())</span>
+        );
+
+        // Extract the authenticated principal populated by UserDetailsServiceImpl
+<span class="fc" id="L171">        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();</span>
+
+        // Generate a signed JWT that embeds userId and roles as custom claims
+<span class="fc" id="L174">        String jwtToken = jwtUtil.generateToken(authentication);</span>
+
+        // Collect the user's role names for inclusion in the response
+<span class="fc" id="L177">        List&lt;String&gt; roles = userDetails.getAuthorities().stream()</span>
+<span class="fc" id="L178">                .map(GrantedAuthority::getAuthority)</span>
+<span class="fc" id="L179">                .toList();</span>
+
+<span class="fc" id="L181">        return new UserInfoResponse(jwtToken, userDetails.getUserId(),</span>
+<span class="fc" id="L182">                userDetails.getUsername(), userDetails.getEmail(), roles);</span>
+    }
+
+    /**
+     * Validates that neither the given username nor email already exists in the database.
+     *
+     * &lt;p&gt;Extracted as a private method to apply the DRY principle — both
+     * {@link #registerUser} and {@link #registerAdmin} share this validation.
+     *
+     * @param username the desired username to check
+     * @param email    the desired email address to check
+     * @throws APIException with {@code 400 BAD_REQUEST} if either is already taken
+     */
+    private void validateUniqueCredentials(String username, String email) {
+<span class="fc bfc" id="L196" title="All 2 branches covered.">        if (userRepository.existsByUsername(username)) {</span>
+<span class="fc" id="L197">            throw new APIException(HttpStatus.BAD_REQUEST, &quot;Username is already taken&quot;);</span>
+        }
+<span class="fc bfc" id="L199" title="All 2 branches covered.">        if (userRepository.existsByEmail(email)) {</span>
+<span class="fc" id="L200">            throw new APIException(HttpStatus.BAD_REQUEST, &quot;Email is already in use&quot;);</span>
+        }
+<span class="fc" id="L202">    }</span>
+
+    /**
+     * Constructs a new {@link User} entity from the signup request data.
+     *
+     * &lt;p&gt;The raw password is BCrypt-encoded here. Roles are not assigned
+     * in this method — they must be set by the calling registration method.
+     *
+     * @param request the signup form data
+     * @return a new {@link User} entity with encoded password, without roles or ID
+     */
+    private User buildUserEntity(SignupRequestDTO request) {
+<span class="fc" id="L214">        User user = new User();</span>
+<span class="fc" id="L215">        user.setUsername(request.getUsername());</span>
+<span class="fc" id="L216">        user.setEmail(request.getEmail());</span>
+        // Encode the raw password with BCrypt before persisting — never store plaintext
+<span class="fc" id="L218">        user.setPassword(passwordEncoder.encode(request.getPassword()));</span>
+<span class="fc" id="L219">        user.setPhoneNumber(request.getPhoneNumber());</span>
+<span class="fc" id="L220">        return user;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

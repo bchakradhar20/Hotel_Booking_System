@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReservationDTO.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Reservation Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.reservation.dto</a> &gt; <span class="el_source">ReservationDTO.java</span></div><h1>ReservationDTO.java</h1><pre class="source lang-java linenums">package com.hotelreservation.reservation.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.*;
+import lombok.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
+<span class="pc" id="L10">@Getter @Setter @NoArgsConstructor @AllArgsConstructor</span>
+public class ReservationDTO {
+<span class="fc" id="L12">    private Long reservationId;</span>
+
+    @NotNull(message = &quot;Check-in date is required&quot;)
+    @JsonFormat(pattern = &quot;yyyy-MM-dd&quot;)
+<span class="fc" id="L16">    private LocalDate checkInDate;</span>
+
+    @NotNull(message = &quot;Check-out date is required&quot;)
+    @JsonFormat(pattern = &quot;yyyy-MM-dd&quot;)
+<span class="fc" id="L20">    private LocalDate checkOutDate;</span>
+
+<span class="fc" id="L22">    private BigDecimal totalAmount;</span>
+
+    @NotNull(message = &quot;Room ID is required&quot;)
+<span class="fc" id="L25">    private Long roomId;</span>
+
+<span class="fc" id="L27">    private String roomNumber;</span>
+<span class="fc" id="L28">    private String username;</span>
+<span class="fc" id="L29">    private Long userId;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

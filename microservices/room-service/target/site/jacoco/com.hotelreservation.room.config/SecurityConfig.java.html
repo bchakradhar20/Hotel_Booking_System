@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Room Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.room.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package com.hotelreservation.room.config;
+
+import com.hotelreservation.room.security.JwtAuthFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+/**
+ * Spring Security configuration for the Room Service.
+ *
+ * &lt;p&gt;Enforces the following access policy:
+ * &lt;ul&gt;
+ *   &lt;li&gt;GET {@code /api/rooms/**} — public; anyone can browse available rooms.&lt;/li&gt;
+ *   &lt;li&gt;POST/PUT/DELETE {@code /api/rooms/**} — requires a valid JWT with {@code ROLE_ADMIN}
+ *       (enforced via {@code @PreAuthorize} on the controller methods).&lt;/li&gt;
+ *   &lt;li&gt;Swagger UI endpoints — publicly accessible for API documentation.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;strong&gt;CSRF note:&lt;/strong&gt; CSRF protection is intentionally disabled.
+ * This service is a stateless REST API secured with JWT tokens sent via the
+ * {@code Authorization} header — not browser cookies. CSRF attacks require the
+ * browser to automatically attach credentials, which does not apply to header-based JWTs.
+ * See: &lt;a href=&quot;https://docs.spring.io/spring-security/reference/features/exploits/csrf.html&quot;&gt;Spring Security CSRF&lt;/a&gt;
+ *
+ * &lt;p&gt;Method-level security ({@code @PreAuthorize}) is enabled to allow
+ * fine-grained role checks directly on controller methods.
+ */
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+
+    /**
+     * Constructs the security configuration with the JWT authentication filter.
+     *
+     * @param jwtAuthFilter filter that validates JWT tokens on every incoming request
+     */
+<span class="nc" id="L46">    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {</span>
+<span class="nc" id="L47">        this.jwtAuthFilter = jwtAuthFilter;</span>
+<span class="nc" id="L48">    }</span>
+
+    /**
+     * Defines the HTTP security filter chain for the Room Service.
+     *
+     * &lt;p&gt;Configuration highlights:
+     * &lt;ul&gt;
+     *   &lt;li&gt;CSRF disabled — stateless JWT API; see class Javadoc for rationale.&lt;/li&gt;
+     *   &lt;li&gt;STATELESS session — no server-side sessions are created or maintained.&lt;/li&gt;
+     *   &lt;li&gt;Public GET access to room endpoints to allow unauthenticated browsing.&lt;/li&gt;
+     *   &lt;li&gt;{@link JwtAuthFilter} is registered before Spring's default
+     *       {@link UsernamePasswordAuthenticationFilter} so the JWT is validated first.&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param http the {@link HttpSecurity} builder
+     * @return the fully configured {@link org.springframework.security.web.SecurityFilterChain}
+     * @throws Exception if security configuration fails
+     */
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L68">        http</span>
+                // CSRF disabled: stateless JWT API — no session/cookie credentials involved
+<span class="nc" id="L70">                .csrf(csrf -&gt; csrf.disable())</span>
+<span class="nc" id="L71">                .sessionManagement(session -&gt;</span>
+<span class="nc" id="L72">                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L73">                .authorizeHttpRequests(auth -&gt; auth</span>
+                        // Room browsing is a public feature — no token required for reads
+<span class="nc" id="L75">                        .requestMatchers(HttpMethod.GET, &quot;/api/rooms/**&quot;).permitAll()</span>
+                        // Swagger UI and OpenAPI docs are publicly accessible
+<span class="nc" id="L77">                        .requestMatchers(&quot;/swagger-ui/**&quot;, &quot;/v3/api-docs/**&quot;).permitAll()</span>
+                        // All other requests (POST, PUT, DELETE) require a valid JWT
+<span class="nc" id="L79">                        .anyRequest().authenticated());</span>
+
+        // Register the JWT filter before Spring's username/password filter
+<span class="nc" id="L82">        http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);</span>
+<span class="nc" id="L83">        return http.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

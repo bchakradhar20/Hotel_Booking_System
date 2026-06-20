@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SecurityConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Auth Service</a> &gt; <a href="index.source.html" class="el_package">com.hotelreservation.auth.config</a> &gt; <span class="el_source">SecurityConfig.java</span></div><h1>SecurityConfig.java</h1><pre class="source lang-java linenums">package com.hotelreservation.auth.config;
+
+import com.hotelreservation.auth.security.UserDetailsServiceImpl;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+
+/**
+ * Spring Security configuration for the Auth Service.
+ *
+ * &lt;p&gt;This service handles only authentication operations (signup, login).
+ * All endpoints are publicly accessible because:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Signup and login are unauthenticated entry points by design.&lt;/li&gt;
+ *   &lt;li&gt;JWT validation for protected resources is handled at the API Gateway level.&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;strong&gt;CSRF note:&lt;/strong&gt; CSRF protection is intentionally disabled.
+ * This service uses stateless JWT-based authentication rather than cookie/session-based auth.
+ * CSRF tokens are only necessary when the browser automatically sends credentials (e.g. cookies).
+ * Since JWTs are sent via the Authorization header, CSRF attacks are not applicable here.
+ * See: &lt;a href=&quot;https://docs.spring.io/spring-security/reference/features/exploits/csrf.html&quot;&gt;Spring Security CSRF&lt;/a&gt;
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    private final UserDetailsServiceImpl userDetailsService;
+
+    /**
+     * Constructs the security configuration with the custom UserDetailsService.
+     *
+     * @param userDetailsService loads user data from the database during authentication
+     */
+<span class="nc" id="L43">    public SecurityConfig(UserDetailsServiceImpl userDetailsService) {</span>
+<span class="nc" id="L44">        this.userDetailsService = userDetailsService;</span>
+<span class="nc" id="L45">    }</span>
+
+    /**
+     * Provides a BCrypt password encoder bean used for hashing and verifying passwords.
+     *
+     * &lt;p&gt;BCrypt is the recommended algorithm for password hashing: it is adaptive,
+     * incorporates a salt automatically, and is resistant to brute-force attacks.
+     *
+     * @return a {@link BCryptPasswordEncoder} instance
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+<span class="nc" id="L57">        return new BCryptPasswordEncoder();</span>
+    }
+
+    /**
+     * Configures the DAO authentication provider that ties together the
+     * {@link UserDetailsServiceImpl} and the {@link PasswordEncoder}.
+     *
+     * &lt;p&gt;Spring Security uses this provider to load the user by username
+     * and verify the submitted raw password against the stored BCrypt hash.
+     *
+     * @return a configured {@link DaoAuthenticationProvider}
+     */
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+<span class="nc" id="L71">        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();</span>
+<span class="nc" id="L72">        provider.setUserDetailsService(userDetailsService);</span>
+<span class="nc" id="L73">        provider.setPasswordEncoder(passwordEncoder());</span>
+<span class="nc" id="L74">        return provider;</span>
+    }
+
+    /**
+     * Exposes the {@link AuthenticationManager} as a Spring bean.
+     *
+     * &lt;p&gt;The {@code AuthService} injects this bean to programmatically authenticate
+     * login requests via {@code AuthenticationManager.authenticate(...)}.
+     *
+     * @param config Spring's authentication configuration
+     * @return the application's {@link AuthenticationManager}
+     * @throws Exception if the manager cannot be built
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+<span class="nc" id="L89">        return config.getAuthenticationManager();</span>
+    }
+
+    /**
+     * Defines the HTTP security filter chain for the Auth Service.
+     *
+     * &lt;p&gt;Policy decisions:
+     * &lt;ul&gt;
+     *   &lt;li&gt;CSRF disabled — stateless JWT API; no session/cookie credentials are used.&lt;/li&gt;
+     *   &lt;li&gt;Session management is STATELESS — no server-side session is created.&lt;/li&gt;
+     *   &lt;li&gt;All requests are permitted — signup/login must be publicly accessible.&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param http the {@link HttpSecurity} builder provided by Spring Security
+     * @return the configured {@link org.springframework.security.web.SecurityFilterChain}
+     * @throws Exception if security configuration fails
+     */
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+<span class="nc" id="L108">        http</span>
+                // CSRF disabled: JWT over Authorization header is not vulnerable to CSRF attacks
+<span class="nc" id="L110">                .csrf(csrf -&gt; csrf.disable())</span>
+<span class="nc" id="L111">                .sessionManagement(session -&gt;</span>
+<span class="nc" id="L112">                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))</span>
+<span class="nc" id="L113">                .authorizeHttpRequests(auth -&gt; auth.anyRequest().permitAll());</span>
+
+<span class="nc" id="L115">        http.authenticationProvider(authenticationProvider());</span>
+<span class="nc" id="L116">        return http.build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

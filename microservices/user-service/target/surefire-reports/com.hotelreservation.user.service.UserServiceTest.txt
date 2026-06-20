@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.hotelreservation.user.service.UserServiceTest
+-------------------------------------------------------------------------------
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.209 s - in com.hotelreservation.user.service.UserServiceTest
