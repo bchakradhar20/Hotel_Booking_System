@@ -4,6 +4,7 @@ com\hotelreservation\room\security\JwtUtil.class
 com\hotelreservation\room\entity\Room.class
 com\hotelreservation\room\exception\ResourceNotFoundException.class
 com\hotelreservation\room\exception\GlobalExceptionHandler.class
+com\hotelreservation\room\config\CorsConfig.class
 com\hotelreservation\room\entity\Room$RoomType.class
 com\hotelreservation\room\config\SecurityConfig.class
 com\hotelreservation\room\repository\RoomRepository.class

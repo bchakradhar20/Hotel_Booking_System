@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: hotel-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: hotel_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hotel-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Eureka Server (Service Discovery)
+  eureka-server:
+    build:
+      context: .
+      dockerfile: ./eureka-server/Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      - mysql
+    volumes:
+      - ./logs/eureka-server:/logs
+    networks:
+      - hotel-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/ >/dev/null 2>&1 || exit 1"]
+      timeout: 20s
+      retries: 10
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    volumes:
+      - ./logs/api-gateway:/logs
+    networks:
+      - hotel-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: .
+      dockerfile: ./auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    volumes:
+      - ./logs/auth-service:/logs
+    networks:
+      - hotel-network
+
+  # Room Service
+  room-service:
+    build:
+      context: .
+      dockerfile: ./room-service/Dockerfile
+    container_name: room-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    volumes:
+      - ./logs/room-service:/logs
+    networks:
+      - hotel-network
+
+  # Reservation Service
+  reservation-service:
+    build:
+      context: .
+      dockerfile: ./reservation-service/Dockerfile
+    container_name: reservation-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    volumes:
+      - ./logs/reservation-service:/logs
+    networks:
+      - hotel-network
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: ./user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    volumes:
+      - ./logs/user-service:/logs
+    networks:
+      - hotel-network
+
+
+  # Frontend
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: hotel-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    networks:
+      - hotel-network
+    depends_on:
+      - api-gateway
+
+  # Include all microservices (reference from microservices/docker-compose.yml)
+  # Or use: docker-compose -f microservices/docker-compose.yml -f docker-compose.yml up
+
+networks:
+  hotel-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+

@@ -1,6 +1,0 @@
-projectKey=hotel-microservices
-serverUrl=http://localhost:9090
-serverVersion=26.6.0.123539
-dashboardUrl=http://localhost:9090/dashboard?id=hotel-microservices
-ceTaskId=d58e8f20-2fd2-496b-80b3-29f514592257
-ceTaskUrl=http://localhost:9090/api/ce/task?id=d58e8f20-2fd2-496b-80b3-29f514592257

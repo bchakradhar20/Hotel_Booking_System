@@ -1,1 +1,0 @@
-typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"com.hotelreservation.gateway","l":"ApiGatewayApplication"},{"p":"com.hotelreservation.gateway.filter","l":"AuthenticationFilter"},{"p":"com.hotelreservation.gateway.filter","l":"AuthenticationFilter.Config"},{"p":"com.hotelreservation.gateway.config","l":"CorsConfig"}];updateSearchResults();

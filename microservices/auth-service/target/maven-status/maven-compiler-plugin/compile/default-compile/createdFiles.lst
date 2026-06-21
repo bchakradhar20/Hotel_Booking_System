@@ -12,6 +12,7 @@ com\hotelreservation\auth\entity\Role.class
 com\hotelreservation\auth\repository\UserRepository.class
 com\hotelreservation\auth\dto\SignupRequestDTO.class
 com\hotelreservation\auth\service\AuthService.class
+com\hotelreservation\auth\config\CorsConfig.class
 com\hotelreservation\auth\dto\ErrorResponse.class
 com\hotelreservation\auth\dto\UserInfoResponse.class
 com\hotelreservation\auth\repository\RoleRepository.class

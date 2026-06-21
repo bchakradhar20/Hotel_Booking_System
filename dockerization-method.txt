@@ -1,0 +1,155 @@
+Hotel Room Reservation System - Dockerization Method
+
+Purpose
+This document records the Docker setup approach used for the project so the full stack can be built and run consistently on any machine that has Docker Desktop installed.
+
+What was containerized
+1. Microservices backend
+   - eureka-server
+   - api-gateway
+   - auth-service
+   - room-service
+   - reservation-service
+   - user-service
+
+2. Infrastructure
+   - MySQL database
+   - Shared Docker network
+   - Persistent MySQL volume
+
+3. Frontend
+   - React/Vite application
+
+High-level strategy
+The project uses a multi-container setup managed by Docker Compose.
+Each Spring Boot service has its own Dockerfile, and the backend services are run on a shared Docker network so they can resolve each other by service name instead of localhost.
+
+The main design idea is:
+- Eureka runs first as the service registry.
+- MySQL runs as a container and stores data in a named volume.
+- All Spring Boot services register with Eureka and connect to MySQL through container DNS names.
+- The API Gateway is the public entry point for backend traffic.
+- The frontend talks to the gateway, not directly to the internal services.
+
+Final directory structure
+microservices/
+- docker-compose.yml
+- eureka-server/Dockerfile
+- api-gateway/Dockerfile
+- auth-service/Dockerfile
+- room-service/Dockerfile
+- reservation-service/Dockerfile
+- user-service/Dockerfile
+- init.sql
+- logs/
+
+frontend/
+- Dockerfile
+
+Dockerfile pattern used for backend services
+Each backend service uses a multi-stage build:
+1. Builder stage uses a Maven image to compile the service.
+2. Runtime stage uses a smaller JRE image to run only the generated JAR.
+
+The backend Dockerfiles were adjusted so they can build correctly from the microservices root because each module inherits from the parent Maven POM in microservices/pom.xml.
+
+Important build detail
+The Docker build context was changed to the microservices root, and the module-specific Dockerfile path is passed through Compose.
+This is required because the module POMs depend on the root aggregator POM and need the root pom.xml available during image build.
+
+Docker Compose layout
+The compose file now manages:
+- mysql
+- eureka-server
+- api-gateway
+- auth-service
+- room-service
+- reservation-service
+- user-service
+- frontend
+
+How service startup is ordered
+1. MySQL starts first.
+2. Eureka server starts after MySQL.
+3. Application services start after Eureka is healthy.
+4. The gateway starts after Eureka is healthy.
+5. The frontend starts after the gateway.
+
+MySQL container setup
+The MySQL service runs with:
+- a root password
+- a named volume for persistent storage
+- an init.sql file for database creation
+
+The databases used by the application services were configured to run inside the MySQL container instead of using a local host database.
+
+Service discovery setup
+Each service now points to the Eureka container by name:
+http://eureka-server:8761/eureka/
+
+This replaces localhost references that would only work outside Docker.
+
+Database connection setup
+Each application service was updated to use Docker-friendly JDBC URLs such as:
+jdbc:mysql://mysql:3306/...
+
+The database host was changed from localhost to mysql so the service can resolve the MySQL container over the Docker network.
+
+Logging setup
+Each backend service writes logs to a container path such as:
+/logs/auth-service.log
+/logs/room-service.log
+/logs/reservation-service.log
+/logs/user-service.log
+/logs/api-gateway.log
+
+These paths are mounted to host folders through Docker Compose so logs are retained outside the container.
+
+Frontend setup
+The frontend was updated so API calls go through the gateway instead of hardcoded local service ports.
+
+Key frontend changes:
+- api.js now uses VITE_API_URL or falls back to http://localhost:8080
+- vite.config.js proxies /api to the gateway port 8080
+
+Gateway port mapping
+The API Gateway runs on port 8085 inside the container and is published to host port 8080.
+
+Reason:
+- the service already listens on 8085 in its application.properties
+- Docker Compose maps host 8080 to container 8085
+
+Health check change
+The Eureka health check was changed to avoid requiring curl in the runtime image.
+Instead, the container uses wget-based checking so the health check can run inside the JRE image.
+
+Commands used to run the stack
+From the microservices directory:
+docker compose up -d --build
+
+Useful follow-up commands:
+docker compose ps
+docker compose logs -f
+docker exec -it hotel-mysql mysql -uroot -proot123
+
+Why docker exec failed earlier
+The error No such container: hotel-mysql happened because the MySQL container was not running yet.
+That command only works after Docker Compose has created and started the stack successfully.
+
+Common checks if startup fails
+1. Verify Docker Desktop is running.
+2. Confirm the compose file is launched from the microservices directory.
+3. Confirm the root parent pom.xml is available to the module Docker builds.
+4. Confirm no service still points to localhost for Eureka or MySQL.
+5. Confirm the gateway port mapping matches the actual service port.
+
+Summary of the final method
+1. Build each microservice with a module-aware multi-stage Dockerfile.
+2. Run all services with Docker Compose on one shared network.
+3. Use Eureka for service discovery.
+4. Use the MySQL container for all persistence.
+5. Route frontend traffic through the API Gateway.
+6. Keep logs on the host through mounted volumes.
+
+Result
+This setup allows the project to run as a containerized microservices stack without local-only dependencies such as localhost database URLs or manually started backend services.

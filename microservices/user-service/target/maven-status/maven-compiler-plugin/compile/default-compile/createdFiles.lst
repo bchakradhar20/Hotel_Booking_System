@@ -13,4 +13,5 @@ com\hotelreservation\user\entity\Role.class
 com\hotelreservation\user\config\ModelMapperConfig.class
 com\hotelreservation\user\security\JwtUtil.class
 com\hotelreservation\user\config\SecurityConfig.class
+com\hotelreservation\user\config\CorsConfig.class
 com\hotelreservation\user\dto\ApiResponse.class

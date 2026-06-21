@@ -1,9 +1,0 @@
-com.hotelreservation.user
-com.hotelreservation.user.config
-com.hotelreservation.user.controller
-com.hotelreservation.user.dto
-com.hotelreservation.user.entity
-com.hotelreservation.user.exception
-com.hotelreservation.user.repository
-com.hotelreservation.user.security
-com.hotelreservation.user.service
